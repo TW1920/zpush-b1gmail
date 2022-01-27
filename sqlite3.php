@@ -5,7 +5,7 @@
  * Description     : Wrapper to use PDO's SQLite driver in the same way as the SQLite3 extension.
  * Created         : 05.02.2017
  *
- * Copyright (C) 2017 Patrick Schlangen <ps@b1g.de>
+ * Copyright (C) 2017 Patrick Schlangen <ps@b1g.de>, 2022 b1gMail.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -33,133 +33,125 @@ define('SQLITE3_BLOB',			3);
 define('SQLITE3_NULL',			4);
 
 /**
- * SQLite3Stmt wrapper for PDO
- *
+ * SQLite3Stmt wrapper for PDO.
  */
 class SQLite3Stmt
 {
-	private $stmt = null;
+    private $stmt = null;
 
-	public function __construct($stmt)
-	{
-		$this->stmt = $stmt;
-	}
+    public function __construct($stmt)
+    {
+        $this->stmt = $stmt;
+    }
 
-	public function bindValue($variable, $value, $dataType = SQLITE3_TEXT)
-	{
-		$dataTypeMap = array(
-			SQLITE3_INTEGER 		=> PDO::PARAM_INT,
-			SQLITE3_FLOAT			=> PDO::PARAM_STR,
-			SQLITE3_TEXT			=> PDO::PARAM_STR,
-			SQLITE3_BLOB			=> PDO::PARAM_LOB,
-			SQLITE3_NULL			=> PDO::PARAM_NULL
-		);
-		$this->stmt->bindValue($variable, $value, $dataTypeMap[$dataType]);
-	}
+    public function bindValue($variable, $value, $dataType = SQLITE3_TEXT)
+    {
+        $dataTypeMap = [
+            SQLITE3_INTEGER => PDO::PARAM_INT,
+            SQLITE3_FLOAT => PDO::PARAM_STR,
+            SQLITE3_TEXT => PDO::PARAM_STR,
+            SQLITE3_BLOB => PDO::PARAM_LOB,
+            SQLITE3_NULL => PDO::PARAM_NULL,
+        ];
+        $this->stmt->bindValue($variable, $value, $dataTypeMap[$dataType]);
+    }
 
-	public function execute()
-	{
-		try
-		{
-			$this->stmt->execute();
-			return(new SQLite3Result($this->stmt));
-		}
-		catch(PDOException $ex)
-		{
-			return(false);
-		}
-	}
+    public function execute()
+    {
+        try {
+            $this->stmt->execute();
+
+            return new SQLite3Result($this->stmt);
+        } catch (PDOException $ex) {
+            return false;
+        }
+    }
 }
 
 /**
- * SQLite3Result wrapper for PDO
- *
+ * SQLite3Result wrapper for PDO.
  */
 class SQLite3Result
 {
-	private $res = null;
+    private $res = null;
 
-	public function __construct($res)
-	{
-		$this->res = $res;
-	}
+    public function __construct($res)
+    {
+        $this->res = $res;
+    }
 
-	public function fetchArray($mode = SQLITE3_BOTH)
-	{
-		$fetchModeMap = array(
-			SQLITE3_ASSOC			=> PDO::FETCH_ASSOC,
-			SQLITE3_NUM				=> PDO::FETCH_NUM,
-			SQLITE3_BOTH			=> PDO::FETCH_BOTH
-		);
-		return($this->res->fetch($fetchModeMap[$mode]));
-	}
+    public function fetchArray($mode = SQLITE3_BOTH)
+    {
+        $fetchModeMap = [
+            SQLITE3_ASSOC => PDO::FETCH_ASSOC,
+            SQLITE3_NUM => PDO::FETCH_NUM,
+            SQLITE3_BOTH => PDO::FETCH_BOTH,
+        ];
 
-	public function finalize()
-	{
-		$this->res->closeCursor();
-	}
+        return $this->res->fetch($fetchModeMap[$mode]);
+    }
+
+    public function finalize()
+    {
+        $this->res->closeCursor();
+    }
 }
 
 /**
- * SQLite3 wrapper for PDO
- *
+ * SQLite3 wrapper for PDO.
  */
 class SQLite3
 {
-	private $filename;
-	private $pdo = null;
+    private $filename;
+    private $pdo = null;
 
-	public function __construct($filename)
-	{
-		$this->filename = $filename;
+    public function __construct($filename)
+    {
+        $this->filename = $filename;
 
-		$this->pdo = new PDO('sqlite:' . $filename);
-		$this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-	}
+        $this->pdo = new PDO('sqlite:'.$filename);
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    }
 
-	public function close()
-	{
-		$this->pdo = null;
-	}
+    public function close()
+    {
+        $this->pdo = null;
+    }
 
-	public function busyTimeout($timeout)
-	{
-		$this->pdo->setAttribute(PDO::ATTR_TIMEOUT, $timeout/1000);
-	}
+    public function busyTimeout($timeout)
+    {
+        $this->pdo->setAttribute(PDO::ATTR_TIMEOUT, $timeout / 1000);
+    }
 
-	public function query($q)
-	{
-		try
-		{
-			$res = $this->pdo->query($q);
-			return(new SQLite3Result($res));
-		}
-		catch(PDOException $e)
-		{
-			return(false);
-		}
-	}
+    public function query($q)
+    {
+        try {
+            $res = $this->pdo->query($q);
 
-	function prepare($q)
-	{
-		try
-		{
-			$res = $this->pdo->prepare($q);
-			return(new SQLite3Stmt($res));
-		}
-		catch(PDOException $e)
-		{
-			return($e);
-		}
-	}
+            return new SQLite3Result($res);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 
-	public function escapeString($str)
-	{
-		return(substr($this->pdo->quote($str), 1, -1));
-	}
+    public function prepare($q)
+    {
+        try {
+            $res = $this->pdo->prepare($q);
 
-	public function lastInsertRowID()
-	{
-		return($this->pdo->lastInsertId());
-	}
+            return new SQLite3Stmt($res);
+        } catch (PDOException $e) {
+            return $e;
+        }
+    }
+
+    public function escapeString($str)
+    {
+        return substr($this->pdo->quote($str), 1, -1);
+    }
+
+    public function lastInsertRowID()
+    {
+        return $this->pdo->lastInsertId();
+    }
 }
