@@ -329,21 +329,21 @@ class BackendB1GMail extends BackendDiff
             else if (isset($parsedMail->headers['x-priority'])) {
                 //X-Priority: 1 - highest, 2 - high, 3 - normal, 4 - low, 5 - lowest
                 switch ((int) $parsedMail->headers['x-priority']) {
-                case 1:
+                    case 1:
                     case 2:
-                    $priority = 'high';
-                    break;
+                        $priority = 'high';
+                        break;
                     case 4:
-                case 5:
+                    case 5:
                         $priority = 'low';
-                    break;
+                        break;
 
-                default:
+                    default:
                         $priority = 'normal';
-                    break;
-                }
+                        break;
+                    }
             } else {
-                $priority = 'normal';
+                    $priority = 'normal';
             }
 
             // extract message ID
@@ -1329,7 +1329,6 @@ class BackendB1GMail extends BackendDiff
         $result->sensitivity = 0;
         $result->busystatus = 2;
         $result->meetingstatus = 0;
-        //$result->timezone 		= false;	// TODO: Timezone data generation should be implemented.
         $result->timezone = date_default_timezone_get();
 
         return $result;
@@ -2016,7 +2015,7 @@ class BackendB1GMail extends BackendDiff
             if ($groupID <= 0) {
                 $groupID = -1;
             }
-
+            $this->db->Query('SET SESSION sql_mode=\'\''); // Ignore doesn't have a default value, maybe fix in future
             $this->db->Query('INSERT INTO {pre}dates(`user`,`title`,`location`,`text`,`group`,`startdate`,`enddate`,`reminder`,`flags`, '
                             .'`repeat_flags`,`repeat_times`,`repeat_value`,`repeat_extra1`,`repeat_extra2`) '
                             .'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
@@ -2116,8 +2115,15 @@ class BackendB1GMail extends BackendDiff
             ]);
         }
 
+        $getBody = '';
+        if (isset($contact->asbody->data)) {
+            $getBody = stream_get_contents($contact->asbody->data);
+        }
+
         // create new item
         if (empty($id)) {
+            
+            $this->db->Query('SET SESSION sql_mode=\'\''); // Ignore doesn't have a default value, maybe fix in future
             $this->db->Query('INSERT INTO {pre}adressen(`user`,`vorname`,`nachname`,`tel`,`fax`,`strassenr`,`ort`,`plz`,`land`,'
                             .'`work_strassenr`,`work_plz`,`work_ort`,`work_land`,`work_email`,`work_tel`,`work_fax`,`work_handy`,'
                             .'`email`,`web`,`handy`,`firma`,`position`,`geburtsdatum`,`picture`,`kommentar`'
@@ -2146,10 +2152,11 @@ class BackendB1GMail extends BackendDiff
                 $contact->jobtitle,
                 $contact->birthday,
                 $picData,
-                $this->GetBody($contact));
+                $getBody);
             $id = $this->db->InsertId();
 
             $this->ChangelogAdded(0, $id, time());
+             ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendB1GMail->ChangeMessage - new contact added"));
         }
 
         // update existing item
@@ -2181,11 +2188,12 @@ class BackendB1GMail extends BackendDiff
                 $contact->jobtitle,
                 $contact->birthday,
                 $picData,
-                $this->GetBody($contact),
+                $getBody,
                 $id,
                 $this->userID);
 
             $this->ChangelogUpdated(0, $id, time());
+            ZLog::Write(LOGLEVEL_DEBUG, sprintf("BackendB1GMail->ChangeMessage - contact updated"));
         }
 
         return $this->StatMessage($folderid, $id);
@@ -2215,6 +2223,7 @@ class BackendB1GMail extends BackendDiff
 
         // create new item
         if (empty($id)) {
+            $this->db->Query('SET SESSION sql_mode=\'\''); // Ignore doesn't have a default value, maybe fix in future
             $this->db->Query('INSERT INTO {pre}tasks(`user`,`tasklistid`,`akt_status`,`beginn`,`faellig`,`priority`,`titel`,`comments`)'
                             .' VALUES(?,?,?,?,?,?,?,?)',
                 $this->userID,

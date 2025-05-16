@@ -208,19 +208,12 @@ class b1gMailSendMail
             }
         }
 
-        // send mail!
-        if (ini_get('safe_mode')) {
-            $result = mail($this->_recipients[0],
-                $this->_encodeMailHeaderField($this->_subject),
-                $messageBody,
-                $messageHeader);
-        } else {
-            $result = mail($this->_recipients[0],
-                $this->_encodeMailHeaderField($this->_subject),
-                $messageBody,
-                $messageHeader,
-                '-f "'.($this->_mailFrom !== false ? $this->_mailFrom : $this->_sender).'"');
-        }
+        // send mail!        
+        $result = mail($this->_recipients[0],
+            $this->_encodeMailHeaderField($this->_subject),
+            $messageBody,
+            $messageHeader,
+            '-f "'.($this->_mailFrom !== false ? $this->_mailFrom : $this->_sender).'"');
 
         // return
         return $result;
