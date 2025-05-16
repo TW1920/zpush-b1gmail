@@ -6,7 +6,7 @@
  *                   Z-Push to a b1gMail database.
  * Created         : 27.01.2013
  *
- * Copyright (C) 2013-2015 Patrick Schlangen <ps@b1g.de>, 2022 b1gMail.eu
+ * Copyright (C) 2013-2015 Patrick Schlangen <ps@b1g.de>, 2022-2025 b1gMail.eu
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -313,18 +313,33 @@ class BackendB1GMail extends BackendDiff
             }
 
             // priority?
-            if (isset($parsedMail->headers['x-priority'])) {
+            if (isset($parsedMail->headers['importance'])) {
+                // convert mime-importance to AS-importance using RFC4021, X-Priority or default to "normal" (ZP-320)
+                $mimeImportance = strtolower($parsedMail->headers["importance"]);
+                    if ($mimeImportance == "normal") {
+                        $priority = 'normal';
+                    }
+                    elseif ($mimeImportance == "high") {
+                        $priority = 'high';
+                    }
+                    elseif ($mimeImportance == "low") {
+                        $priority = 'low';
+                    }
+            }
+            else if (isset($parsedMail->headers['x-priority'])) {
+                //X-Priority: 1 - highest, 2 - high, 3 - normal, 4 - low, 5 - lowest
                 switch ((int) $parsedMail->headers['x-priority']) {
                 case 1:
+                    case 2:
                     $priority = 'high';
                     break;
-
+                    case 4:
                 case 5:
-                    $priority = 'normal';
+                        $priority = 'low';
                     break;
 
                 default:
-                    $priority = 'low';
+                        $priority = 'normal';
                     break;
                 }
             } else {
